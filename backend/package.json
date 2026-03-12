@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "description": "Backend for Managing Maladaptive Daydreaming App - overcome daydreaming habit tracker",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
