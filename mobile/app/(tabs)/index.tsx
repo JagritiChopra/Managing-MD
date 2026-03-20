@@ -267,7 +267,7 @@ export default function HomeScreen() {
             <ActivityIndicator color="#3B82F6" />
           ) : quote ? (
             <>
-              <Ionicons name="quote" size={22} color="#3B82F6" style={{ marginBottom: 8 }} />
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#3B82F6" style={{ marginBottom: 8 }} />
               <Text style={styles.quoteText}>{quote.text}</Text>
               {!!quote.author && <Text style={styles.quoteAuthor}>— {quote.author}</Text>}
             </>
