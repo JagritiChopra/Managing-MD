@@ -33,6 +33,11 @@ exports.resetPasswordValidation = [
     .withMessage("Password must be at least 8 characters"),
 ];
 
+exports.resendVerificationValidation = [
+  body("email").trim().isEmail().withMessage("Valid email is required").normalizeEmail(),
+];
+
+
 // ─── Shared user projection for auth responses ─────────────────────────────
 const AUTH_USER_FIELDS = "_id name email avatar createdAt";
 
@@ -48,19 +53,127 @@ exports.signup = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({ name, email, password });
-  const token = generateToken(user._id);
 
-  return successResponse(res, 201, "Account created successfully!", {
-    token,
-    user: {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      createdAt: user.createdAt,
-    },
+  // Generate email verification token
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+
+  user.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+
+  user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+
+
+//  const token = generateToken(user._id);
+  const verifyURL = `${process.env.CLIENT_URL}/api/auth/verify-email/${verificationToken}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: "Verify your Daydream account",
+    html: `
+    <h2>Hello ${user.name}</h2>
+    <p>Please verify your email by clicking the link below:</p>
+    <a href="${verifyURL}">${verifyURL}</a>
+    <p>This link expires in 24 hours.</p>
+  `,
   });
+  // return successResponse(res, 201, "Account created successfully!", {
+  //   token,
+  //   user: {
+  //     _id: user._id,
+  //     name: user.name,
+  //     email: user.email,
+  //     avatar: user.avatar,
+  //     createdAt: user.createdAt,
+  //   },
+  // });
+  return successResponse(res, 201, "Account created! Please verify your email.", {
+  user: {
+    _id: user._id,
+    name: user.name,
+    email: user.email
+  }
 });
+});
+
+// @route GET /api/auth/verify-email/:token
+exports.verifyEmail = asyncHandler(async (req, res) => {
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return errorResponse(res, 400, "Verification link invalid or expired.");
+  }
+
+  user.isVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpire = undefined;
+
+  await user.save();
+
+  return successResponse(res, 200, "Email verified successfully. You can now log in.");
+});
+
+// @route POST /api/auth/resend-verification
+exports.resendVerification = asyncHandler(async (req, res) => {
+
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return errorResponse(res, 404, "User not found.");
+  }
+
+  if (user.isVerified) {
+    return errorResponse(res, 400, "Email is already verified.");
+  }
+
+  // generate new token
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+
+  user.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+
+  user.emailVerificationExpire = Date.now() + 24 * 60 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+  const verifyURL = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "Verify your Daydream account",
+      html: `
+        <h2>Hello ${user.name}</h2>
+        <p>Please verify your email by clicking the link below:</p>
+        <a href="${verifyURL}">${verifyURL}</a>
+        <p>This link expires in 24 hours.</p>
+      `,
+    });
+
+    return successResponse(res, 200, "Verification email resent successfully.");
+  } catch (err) {
+    console.error("Email send error:", err.message);
+    return errorResponse(res, 500, "Email could not be sent.");
+  }
+});
+
 
 // @route   POST /api/auth/login
 exports.login = asyncHandler(async (req, res) => {
@@ -70,7 +183,9 @@ exports.login = asyncHandler(async (req, res) => {
   if (!user || !(await user.matchPassword(password))) {
     return errorResponse(res, 401, "Invalid email or password.");
   }
-
+  if (!user.isVerified) {
+    return errorResponse(res, 403, "Please verify your email first.");
+  }
   const token = generateToken(user._id);
 
   return successResponse(res, 200, "Logged in successfully!", {

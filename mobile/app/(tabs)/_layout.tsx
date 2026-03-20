@@ -1,35 +1,50 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Dimensions, Platform } from 'react-native';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// A responsive tab bar height based on screen height
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? SCREEN_HEIGHT * 0.09 : SCREEN_HEIGHT * 0.08;
+const TAB_BAR_PADDING = Platform.OS === 'ios' ? SCREEN_HEIGHT * 0.015 : SCREEN_HEIGHT * 0.062;
+
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+      screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+        tabBarIcon: ({ color, size }) => {
+          let iconName: any;
+          if (route.name === 'index') iconName = 'home';
+          else if (route.name === 'journal') iconName = 'book';
+          else if (route.name === 'comfort') iconName = 'heart';
+          else if (route.name === 'timer') iconName = 'timer';
+          else if (route.name === 'profile') iconName = 'person';
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+           tabBarActiveTintColor: '#3B82F6' ,
+          tabBarInactiveTintColor: '#9CA3AF',
+          tabBarStyle: {
+          backgroundColor: '#1F2937', // your desired color
+          borderTopWidth: 0,           // optional: remove top border
+          height: TAB_BAR_HEIGHT,
+          paddingVertical: TAB_BAR_PADDING,
+          
+        },
+        tabBarItemStyle: {
+          paddingTop: 8,   // pushes icon downward
+        },
+
+      })}
+    >
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="journal" options={{ title: 'Journal' }} />
+      <Tabs.Screen name="comfort" options={{ title: 'Comfort' }} />
+      <Tabs.Screen name="timer" options={{ title: 'Timer' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }

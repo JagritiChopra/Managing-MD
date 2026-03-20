@@ -125,7 +125,7 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`\n🚀 Daydream API running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🔗 URL: http://localhost:${PORT}\n`);
+  console.log(`🔗 URL: https://localhost:${PORT}\n`);
 });
 
 // ─── Process Error Handlers ────────────────────────────────────────────────

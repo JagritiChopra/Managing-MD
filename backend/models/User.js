@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema(
     },
     isVerified: {
       type: Boolean,
-      default: true, // Set false if you add email verification
+      default: false, 
     },
     resetPasswordToken: {
       type: String,
@@ -62,6 +62,8 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    emailVerificationToken: String,
+    emailVerificationExpire: Date,
   },
   {
     timestamps: true,
